@@ -1,0 +1,726 @@
+{
+	"info": {
+		"_postman_id": "keycloak-usermanagement-final-dec-2025",
+		"name": "Keycloak User Management API - Complete Collection (Dec 2025)",
+		"description": "Complete Postman collection for Keycloak User Management System\n\n✅ Latest Updates (December 2025):\n• Role APIs use roleId (not roleName) in URL paths\n• Group APIs use roleIds and privilegeIds (not names) in request bodies\n• User APIs use roleIds and groupIds (not names) in request bodies\n• Username automatically generated from email (no username field needed)\n• User responses return structured role/group objects with IDs and names\n• UpdateUserRequest validates email, firstName, lastName as required\n• Group responses no longer include path field (cleaner response)\n• Get Users in Group returns complete user data (attributes, roles, groups)\n• All APIs standardized to use UUIDs for consistency\n• All user endpoints return identical structured data\n\n📋 Collection includes:\n• Authentication (1 API - Get JWT Token)\n• Role Management (6 APIs)\n• Group Management (7 APIs)\n• User Management (5 APIs)\n\n🔧 Features:\n• Auto-saves IDs from responses for easy testing\n• Test scripts to populate variables automatically\n• Complete request examples with all required fields\n• Consistent response structures across all endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Get Access Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"accessToken\", jsonData.access_token);",
+									"    console.log(\"Access token saved:\", jsonData.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "{{clientId}}",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "{{username}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+							"host": [
+								"{{keycloakUrl}}"
+							],
+							"path": [
+								"realms",
+								"{{realm}}",
+								"protocol",
+								"openid-connect",
+								"token"
+							]
+						},
+						"description": "Get access token using username (email) and password. For users created through the API, use their email address as the username. The token is automatically saved to the collection variable 'accessToken' and used for all subsequent requests."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Role Management",
+			"item": [
+				{
+					"name": "Create Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"roleName\": \"manager\",\n  \"description\": \"Manager role with multiple privileges\",\n  \"privilegeIds\": [\n    \"{{privilegeId1}}\",\n    \"{{privilegeId2}}\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/roles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles"
+							]
+						},
+						"description": "Create a new role with privileges. Role name will be auto-prefixed with 'role_'. Use privilege IDs (UUIDs) from 'Get All Privileges' endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Role",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/roles/{{roleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles",
+								"{{roleId}}"
+							]
+						},
+						"description": "Delete a role by ID. The role will only be deleted if it's not currently assigned to any users."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Role",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Updated role description\",\n  \"privilegeIdsToAdd\": [\n    \"{{privilegeId3}}\"\n  ],\n  \"privilegeIdsToRemove\": [\n    \"{{privilegeId1}}\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/roles/{{roleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles",
+								"{{roleId}}"
+							]
+						},
+						"description": "Update role description and modify privileges. Use role ID from 'Get All Roles' endpoint. Privilege IDs from 'Get All Privileges' endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Roles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var roles = pm.response.json();",
+									"    if (roles.length > 0) {",
+									"        pm.collectionVariables.set(\"roleId\", roles[0].id);",
+									"        pm.collectionVariables.set(\"roleName\", roles[0].name);",
+									"        console.log(\"Saved roleId:\", roles[0].id);",
+									"        console.log(\"Saved roleName:\", roles[0].name);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/roles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles"
+							]
+						},
+						"description": "Get all roles (only roles starting with 'role_', not privileges). Returns role ID, name, displayName, description, and composite status."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Privileges for Role",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/roles/{{roleId}}/privileges",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles",
+								"{{roleId}}",
+								"privileges"
+							]
+						},
+						"description": "Get all privileges assigned to a specific role. Use role ID from 'Get All Roles' endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Privileges",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var privileges = pm.response.json();",
+									"    if (privileges.length > 0) {",
+									"        pm.collectionVariables.set(\"privilegeId1\", privileges[0].id);",
+									"        if (privileges.length > 1) {",
+									"            pm.collectionVariables.set(\"privilegeId2\", privileges[1].id);",
+									"        }",
+									"        if (privileges.length > 2) {",
+									"            pm.collectionVariables.set(\"privilegeId3\", privileges[2].id);",
+									"        }",
+									"        console.log(\"Saved privilege IDs\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/roles/privileges",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"roles",
+								"privileges"
+							]
+						},
+						"description": "Get all privileges (roles starting with 'priv_'). Returns privilege ID, name, displayName, and description."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Group Management",
+			"item": [
+				{
+					"name": "Create Group",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"groupName\": \"Engineering Team\",\n  \"roleIds\": [\n    \"{{roleId}}\"\n  ],\n  \"privilegeIds\": [\n    \"{{privilegeId1}}\",\n    \"{{privilegeId2}}\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/groups",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups"
+							]
+						},
+						"description": "Create a new group with roles and privileges. Use role IDs from 'Get All Roles' and privilege IDs from 'Get All Privileges'."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Group",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/groups/{{groupId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{groupId}}"
+							]
+						},
+						"description": "Delete a group by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Groups",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var groups = pm.response.json();",
+									"    if (groups.length > 0) {",
+									"        pm.collectionVariables.set(\"groupId\", groups[0].id);",
+									"        pm.collectionVariables.set(\"groupName\", groups[0].name);",
+									"        console.log(\"Saved groupId:\", groups[0].id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/groups",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups"
+							]
+						},
+						"description": "Get all groups. Returns group ID and name only."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Roles and Privileges for Group",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/groups/{{groupId}}/roles-privileges",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{groupId}}",
+								"roles-privileges"
+							]
+						},
+						"description": "Get all roles and privileges assigned to a specific group."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Users in Group",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/groups/{{groupId}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{groupId}}",
+								"users"
+							]
+						},
+						"description": "Get all users in a specific group. Returns complete user information including attributes, roles (with roleId and roleName), and groups (with groupId and groupName). Same structure as GET /api/users endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Group Users",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userIdsToAdd\": [\n    \"{{userId}}\"\n  ],\n  \"userIdsToRemove\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/groups/{{groupId}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{groupId}}",
+								"users"
+							]
+						},
+						"description": "Add or remove users from a group. Use user IDs from 'Get All Users' endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Group Roles and Privileges",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"roleIdsToAdd\": [\n    \"{{roleId}}\"\n  ],\n  \"roleIdsToRemove\": [],\n  \"privilegeIdsToAdd\": [\n    \"{{privilegeId3}}\"\n  ],\n  \"privilegeIdsToRemove\": [\n    \"{{privilegeId1}}\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/groups/{{groupId}}/roles-privileges",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{groupId}}",
+								"roles-privileges"
+							]
+						},
+						"description": "Update roles and privileges assigned to a group. Use role IDs and privilege IDs."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Create User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var response = pm.response.json();",
+									"    if (response.user && response.user.id) {",
+									"        pm.collectionVariables.set(\"userId\", response.user.id);",
+									"        console.log(\"Saved userId:\", response.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"password\": \"SecurePassword123!\",\n  \"enabled\": true,\n  \"emailVerified\": false,\n  \"entityCode\": \"ENT001\",\n  \"countryCode\": \"US\",\n  \"roleIds\": [\n    \"{{roleId}}\"\n  ],\n  \"groupIds\": [\n    \"{{groupId}}\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Create a new user with roles and groups. Username is automatically set to the email address. Use role IDs from 'Get All Roles' and group IDs from 'Get All Groups'."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{userId}}"
+							]
+						},
+						"description": "Delete a user by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var users = pm.response.json();",
+									"    if (users.length > 0) {",
+									"        pm.collectionVariables.set(\"userId\", users[0].id);",
+									"        console.log(\"Saved userId:\", users[0].id);",
+									"        console.log(\"User roles:\", JSON.stringify(users[0].roles));",
+									"        console.log(\"User groups:\", JSON.stringify(users[0].groups));",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Get all users. Returns user details including structured roles (roleId, roleName) and groups (groupId, groupName)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{userId}}"
+							]
+						},
+						"description": "Get a specific user by ID. Returns user details including structured roles and groups with both IDs and names."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.updated@example.com\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe Updated\",\n  \"enabled\": true,\n  \"entityCode\": \"ENT002\",\n  \"countryCode\": \"UK\",\n  \"roleIdsToAdd\": [],\n  \"roleIdsToRemove\": [],\n  \"groupIdsToAdd\": [],\n  \"groupIdsToRemove\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{userId}}"
+							]
+						},
+						"description": "Update user information, roles, and groups. Email, firstName, and lastName are REQUIRED fields (cannot be empty). Use role IDs and group IDs. Can extract role/group IDs from 'Get User by ID' response."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8090",
+			"type": "string"
+		},
+		{
+			"key": "keycloakUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "realm",
+			"value": "sprint-ap",
+			"type": "string"
+		},
+		{
+			"key": "clientId",
+			"value": "sprint-ap-client",
+			"type": "string"
+		},
+		{
+			"key": "username",
+			"value": "admin",
+			"type": "string"
+		},
+		{
+			"key": "password",
+			"value": "admin",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "roleId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "roleName",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "privilegeId1",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "privilegeId2",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "privilegeId3",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "groupId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "groupName",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+
