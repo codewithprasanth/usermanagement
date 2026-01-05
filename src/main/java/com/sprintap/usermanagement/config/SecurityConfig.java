@@ -43,6 +43,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/**", "/actuator/health").permitAll()
                         // Swagger/OpenAPI endpoints
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        // All other endpoints require authentication
+                        .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
@@ -73,11 +75,10 @@ public class SecurityConfig {
 
     /**
      * Extracts roles from Keycloak JWT token
-     * Keycloak stores roles in: realm_access.roles and resource_access.{client-id}.roles
-     * Note: This is not a @Bean to avoid Spring MVC trying to register it as a general converter
      */
     private Converter<Jwt, Collection<GrantedAuthority>> jwtGrantedAuthoritiesConverter() {
         return jwt -> {
+            // Extract realm roles
             Map<String, Object> realmAccess = jwt.getClaim("realm_access");
             Collection<String> realmRoles = realmAccess != null && realmAccess.containsKey("roles")
                     ? (Collection<String>) realmAccess.get("roles")
@@ -99,9 +100,8 @@ public class SecurityConfig {
                     realmRoles.stream(),
                     clientRoles.stream()
             )
-            .map(role -> new SimpleGrantedAuthority(role.toUpperCase()))
-            .collect(Collectors.toSet());
+                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                    .collect(Collectors.toList());
         };
     }
 }
-

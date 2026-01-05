@@ -10,7 +10,7 @@
 # SERVER CONFIGURATION
 # =============================================================================
 server:
-  port: ${SERVER_PORT:8070}
+  port: ${SERVER_PORT:8071}
 
 # =============================================================================
 # SPRING CONFIGURATION
@@ -115,18 +115,6 @@ app:
     default-page-size: ${APP_PAGINATION_DEFAULT_PAGE_SIZE:10}
     max-page-size: ${APP_PAGINATION_MAX_PAGE_SIZE:100}
 
-# =============================================================================
-# LOGGING CONFIGURATION
-# =============================================================================
-logging:
-  level:
-    root: INFO
-    com.sprintap.usermanagement: INFO
-
-  file:
-    name: logs/application.log
-    max-size: 10MB
-    max-history: 30
 
 # =============================================================================
 # ACTUATOR CONFIGURATION (Monitoring & Health Checks)
@@ -160,3 +148,4 @@ springdoc:
   show-actuator: false
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
+

@@ -30,10 +30,6 @@ public class UserController {
 
     private final UserService userService;
 
-    /**
-     * Create a new user
-     * POST /api/v1/users
-     */
     @PostMapping
     @Operation(summary = "Create new user", description = "Create a new user in Keycloak and database")
     @ApiResponses(value = {
@@ -48,12 +44,22 @@ public class UserController {
         return ResponseHelper.created("User created successfully", "user", createdUser);
     }
 
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable String userId) {
+        log.info("REST request to delete user: {}", userId);
+        userService.deleteUser(userId);
+        return ResponseHelper.ok("User deleted successfully");
+    }
+
     /**
-     * Get all users with filtering, searching, and pagination
-     * GET /api/v1/users
+     * GET /api/users : Get all users with optional search filter and pagination
      *
-     * @param keyword Search keyword for username, firstName, lastName, email (optional)
-     * @param role Filter by role name (optional)
+     * @param keyword Optional search keyword to filter users.
+     *                Searches across username, email, firstName, and lastName with partial matching.
+     *                If not provided, returns all users.
+     * @param role Optional role name to filter users by role (e.g., "role_admin", "role_user").
+     *             Filters users who have the specified role assigned.
+     *             If not provided, returns users with any role.
      * @param pageSize Number of items per page (default: 10)
      * @param pageNumber Page number starting from 1 (default: 1)
      * @param sortBy Field to sort by - Options: createdAt, username, email, firstName, lastName (default: createdAt)
@@ -61,75 +67,35 @@ public class UserController {
      * @return PaginatedResponse containing users list and pagination metadata
      */
     @GetMapping
-    @Operation(summary = "Get all users", description = "Retrieve a paginated list of users with optional search and filter")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved users"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized")
-    })
     public ResponseEntity<PaginatedResponse<UserDTO>> getAllUsers(
-            @Parameter(description = "Search keyword") @RequestParam(required = false) String keyword,
-            @Parameter(description = "Filter by role name") @RequestParam(required = false) String role,
-            @Parameter(description = "Page size") @RequestParam(required = false, defaultValue = "10") Integer pageSize,
-            @Parameter(description = "Page number") @RequestParam(required = false, defaultValue = "1") Integer pageNumber,
-            @Parameter(description = "Sort field") @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
-            @Parameter(description = "Sort order") @RequestParam(required = false, defaultValue = "desc") String sortOrder) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false, defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false, defaultValue = "1") Integer pageNumber,
+            @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortOrder) {
         log.info("REST request to get all users with keyword: {}, role: {}, pageSize: {}, pageNumber: {}, sortBy: {}, sortOrder: {}",
                  keyword, role, pageSize, pageNumber, sortBy, sortOrder);
 
         PaginatedResponse<UserDTO> response = userService.getAllUsers(keyword, role, pageSize, pageNumber, sortBy, sortOrder);
         return ResponseEntity.ok(response);
     }
-
-    /**
-     * Get a user by ID
-     * GET /api/v1/users/{userId}
-     */
     @GetMapping("/{userId}")
-    @Operation(summary = "Get user by ID", description = "Retrieve a specific user by their ID")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved user"),
-        @ApiResponse(responseCode = "404", description = "User not found")
-    })
-    public ResponseEntity<UserDTO> getUserById(
-            @Parameter(description = "User ID") @PathVariable String userId) {
+    public ResponseEntity<UserDTO> getUserById(@PathVariable String userId) {
         log.info("REST request to get user: {}", userId);
+
         UserDTO user = userService.getUserById(userId);
+
         return ResponseEntity.ok(user);
     }
 
-    /**
-     * Update a user
-     * PUT /api/v1/users/{userId}
-     */
     @PutMapping("/{userId}")
-    @Operation(summary = "Update user", description = "Update an existing user")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "User updated successfully"),
-        @ApiResponse(responseCode = "404", description = "User not found")
-    })
     public ResponseEntity<Map<String, Object>> updateUser(
-            @Parameter(description = "User ID") @PathVariable String userId,
-            @Parameter(description = "User update request") @Valid @RequestBody UpdateUserRequest request) {
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateUserRequest request) {
         log.info("REST request to update user: {}", userId);
         UserDTO updatedUser = userService.updateUser(userId, request);
         return ResponseHelper.ok("User updated successfully", "user", updatedUser);
-    }
-
-    /**
-     * Delete a user
-     * DELETE /api/v1/users/{userId}
-     */
-    @DeleteMapping("/{userId}")
-    @Operation(summary = "Delete user", description = "Delete a user by their ID")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "User deleted successfully"),
-        @ApiResponse(responseCode = "404", description = "User not found")
-    })
-    public ResponseEntity<Map<String, Object>> deleteUser(
-            @Parameter(description = "User ID") @PathVariable String userId) {
-        log.info("REST request to delete user: {}", userId);
-        userService.deleteUser(userId);
-        return ResponseHelper.ok("User deleted successfully");
     }
 }
 

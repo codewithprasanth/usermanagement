@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -22,7 +23,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.UUID;
 
 /**
@@ -40,7 +40,7 @@ public class DoaRuleController {
     private final DoaRuleService doaRuleService;
 
     /**
-     * Get all DOA rules with filtering and pagination
+     * Get all DOA rules with pagination and filtering
      * GET /api/v1/doa-rules
      */
     @GetMapping
@@ -65,25 +65,19 @@ public class DoaRuleController {
 
         log.info("GET /api/v1/doa-rules - page: {}, size: {}, sort: {}", page, size, sort);
 
-        // Parse sort parameter to extract sortBy and sortOrder
-        String sortBy = "createdAt";
-        String sortOrder = "desc";
-        if (sort != null && !sort.isEmpty()) {
-            String[] sortParts = sort.split(",");
-            sortBy = sortParts[0];
-            if (sortParts.length > 1) {
-                sortOrder = sortParts[1];
-            }
-        }
+        // Parse sort parameter (e.g., "userName,asc" or "createdAt,desc")
+        String[] sortParams = sort.split(",");
+        String sortBy = sortParams.length > 0 ? sortParams[0] : "createdAt";
+        String sortOrder = sortParams.length > 1 ? sortParams[1] : "desc";
 
         Page<DoaRuleResponse> response = doaRuleService.getAllDoaRules(
-            page, size, sortBy, sortOrder, userId, entity, currency, classification, isActive, enabled
-        );
+                page, size, sortBy, sortOrder, userId, entity, currency, classification, isActive, enabled);
+
         return ResponseEntity.ok(response);
     }
 
     /**
-     * Get a specific DOA rule by ID
+     * Get DOA rule by ID
      * GET /api/v1/doa-rules/{id}
      */
     @GetMapping("/{id}")
@@ -94,7 +88,6 @@ public class DoaRuleController {
     })
     public ResponseEntity<DoaRuleResponse> getDoaRuleById(
             @Parameter(description = "DOA Rule ID") @PathVariable UUID id) {
-
         log.info("GET /api/v1/doa-rules/{}", id);
 
         DoaRuleResponse response = doaRuleService.getDoaRuleById(id);
@@ -117,7 +110,9 @@ public class DoaRuleController {
 
         log.info("POST /api/v1/doa-rules - Creating DOA rule for user: {}", request.getUserId());
 
+        // Extract user ID from JWT token
         UUID createdByUserId = extractUserIdFromToken(authentication);
+
         DoaRuleResponse response = doaRuleService.createDoaRule(request, createdByUserId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -127,14 +122,9 @@ public class DoaRuleController {
      * PUT /api/v1/doa-rules/{id}
      */
     @PutMapping("/{id}")
-    @Operation(summary = "Update DOA rule", description = "Update an existing DOA rule")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "DOA rule updated successfully"),
-        @ApiResponse(responseCode = "404", description = "DOA rule not found")
-    })
     public ResponseEntity<DoaRuleResponse> updateDoaRule(
-            @Parameter(description = "DOA Rule ID") @PathVariable UUID id,
-            @Parameter(description = "DOA Rule request") @Valid @RequestBody DoaRuleRequest request) {
+            @PathVariable UUID id,
+            @Valid @RequestBody DoaRuleRequest request) {
 
         log.info("PUT /api/v1/doa-rules/{} - Updating DOA rule", id);
 
@@ -143,15 +133,10 @@ public class DoaRuleController {
     }
 
     /**
-     * Delete a DOA rule
+     * Delete a DOA rule (soft delete)
      * DELETE /api/v1/doa-rules/{id}
      */
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete DOA rule", description = "Delete a DOA rule by ID")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "204", description = "DOA rule deleted successfully"),
-        @ApiResponse(responseCode = "404", description = "DOA rule not found")
-    })
     public ResponseEntity<Void> deleteDoaRule(@PathVariable UUID id) {
         log.info("DELETE /api/v1/doa-rules/{} - Deleting DOA rule", id);
 
@@ -164,14 +149,9 @@ public class DoaRuleController {
      * PATCH /api/v1/doa-rules/{id}/toggle-status
      */
     @PatchMapping("/{id}/toggle-status")
-    @Operation(summary = "Toggle DOA rule status", description = "Enable or disable a DOA rule")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Status toggled successfully"),
-        @ApiResponse(responseCode = "404", description = "DOA rule not found")
-    })
-    public ResponseEntity<ToggleStatusResponse> toggleDoaRuleStatus(
-            @Parameter(description = "DOA Rule ID") @PathVariable UUID id,
-            @Parameter(description = "Toggle status request") @Valid @RequestBody ToggleStatusRequest request) {
+    public ResponseEntity<ToggleStatusResponse> toggleStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody ToggleStatusRequest request) {
 
         log.info("PATCH /api/v1/doa-rules/{}/toggle-status - Toggling status to: {}", id, request.getEnabled());
 
@@ -184,15 +164,10 @@ public class DoaRuleController {
      * GET /api/v1/doa-rules/user/{userId}
      */
     @GetMapping("/user/{userId}")
-    @Operation(summary = "Get DOA rules by user ID", description = "Retrieve DOA rules for a specific user")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved DOA rules"),
-        @ApiResponse(responseCode = "404", description = "User not found")
-    })
     public ResponseEntity<Page<DoaRuleResponse>> getDoaRulesByUserId(
-            @Parameter(description = "User ID") @PathVariable UUID userId,
-            @Parameter(description = "Page number") @RequestParam(defaultValue = "0") Integer page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "10") Integer size) {
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
 
         log.info("GET /api/v1/doa-rules/user/{} - page: {}, size: {}", userId, page, size);
 
@@ -205,15 +180,10 @@ public class DoaRuleController {
      * GET /api/v1/doa-rules/entity/{entity}
      */
     @GetMapping("/entity/{entity}")
-    @Operation(summary = "Get DOA rules by entity", description = "Retrieve DOA rules for a specific entity")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved DOA rules"),
-        @ApiResponse(responseCode = "404", description = "Entity not found")
-    })
     public ResponseEntity<Page<DoaRuleResponse>> getDoaRulesByEntity(
-            @Parameter(description = "Entity name") @PathVariable String entity,
-            @Parameter(description = "Page number") @RequestParam(defaultValue = "0") Integer page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "10") Integer size) {
+            @PathVariable String entity,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
 
         log.info("GET /api/v1/doa-rules/entity/{} - page: {}, size: {}", entity, page, size);
 
